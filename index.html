@@ -1,49 +1,406 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProVideoEditor - Montage Vidéo</title>
-    <meta name="description" content="Application de montage vidéo professionnelle en ligne">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* Loading screen */
-      #loading {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #0f172a;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        color: white;
-        font-family: Arial, sans-serif;
-      }
-      .spinner {
-        width: 50px;
-        height: 50px;
-        border: 5px solid #334155;
-        border-top: 5px solid #3b82f6;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 20px;
-      }
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
+        .clip { 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            height: 50px; 
+            margin: 2px; 
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: move;
+            border: 1px solid #60a5fa;
+            user-select: none;
+        }
+        .playhead { 
+            position: absolute; 
+            width: 2px; 
+            background: #ef4444; 
+            height: 100%; 
+            top: 0;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+            pointer-events: none;
+        }
+        .timeline-track {
+            background: #374151;
+            min-height: 60px;
+            border-radius: 4px;
+            position: relative;
+        }
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #334155;
+            border-top: 5px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none !important;
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body class="bg-gray-900 text-white">
+    <!-- Écran de chargement -->
     <div id="loading">
-      <div class="spinner"></div>
-      <h2>Chargement de ProVideoEditor...</h2>
-      <p>Préparation de l'environnement de montage</p>
+        <div class="spinner"></div>
+        <h2 class="text-xl mb-2">Chargement de ProVideoEditor...</h2>
+        <p>Préparation de l'environnement de montage</p>
     </div>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+    <!-- Application principale -->
+    <div id="app" class="hidden min-h-screen">
+        <!-- Header -->
+        <header class="bg-gray-800 border-b border-gray-700 px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold flex items-center">
+                        <span class="text-3xl mr-3">🎬</span>
+                        ProVideoEditor
+                    </h1>
+                    <div class="flex space-x-2">
+                        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                            Fichier
+                        </button>
+                        <button class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                            Édition
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="importBtn" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors">
+                        📥 Importer Médias
+                    </button>
+                    <button class="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition-colors">
+                        💾 Exporter
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenu principal -->
+        <div class="flex h-[calc(100vh-80px)]">
+            <!-- Sidebar - Médiathèque -->
+            <div class="w-80 bg-gray-800 border-r border-gray-700 p-4">
+                <h2 class="text-lg font-semibold mb-4">📚 Médiathèque</h2>
+                <div id="mediaList" class="space-y-2">
+                    <p class="text-gray-400 text-sm text-center py-8">Aucun média importé</p>
+                </div>
+            </div>
+
+            <!-- Zone centrale -->
+            <div class="flex-1 flex flex-col">
+                <!-- Aperçu -->
+                <div class="flex-1 bg-black flex items-center justify-center relative">
+                    <div class="text-center">
+                        <div class="text-6xl mb-4">📹</div>
+                        <h2 class="text-2xl mb-2">Aperçu Vidéo</h2>
+                        <p class="text-gray-400 mb-6">Glissez des fichiers dans la médiathèque pour commencer</p>
+                        
+                        <!-- Contrôles de lecture -->
+                        <div class="flex items-center justify-center space-x-4">
+                            <button id="playBtn" class="w-12 h-12 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white font-bold">
+                                ▶
+                            </button>
+                            <span id="timeDisplay" class="text-lg">00:00:00 / 00:00:00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="h-64 bg-gray-800 border-t border-gray-700 p-4">
+                    <h3 class="text-lg font-semibold mb-4">⏰ Timeline</h3>
+                    
+                    <!-- Règle de temps -->
+                    <div class="h-6 bg-gray-700 rounded-t mb-2 flex items-center px-2 text-xs text-gray-300">
+                        <div class="flex space-x-16">
+                            <span>00:00</span>
+                            <span>00:05</span>
+                            <span>00:10</span>
+                            <span>00:15</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Pistes -->
+                    <div class="bg-gray-900 rounded-b p-3 space-y-3">
+                        <!-- Piste vidéo -->
+                        <div class="flex items-center">
+                            <div class="w-20 text-sm text-gray-400">Vidéo 1</div>
+                            <div class="timeline-track flex-1" id="videoTrack">
+                                <!-- Clips vidéo apparaîtront ici -->
+                            </div>
+                        </div>
+                        
+                        <!-- Piste audio -->
+                        <div class="flex items-center">
+                            <div class="w-20 text-sm text-gray-400">Audio 1</div>
+                            <div class="timeline-track flex-1" id="audioTrack">
+                                <!-- Clips audio apparaîtront ici -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Playhead -->
+                    <div class="playhead" id="playhead" style="left: 50%;"></div>
+                </div>
+            </div>
+
+            <!-- Panneau de propriétés -->
+            <div class="w-80 bg-gray-800 border-l border-gray-700 p-4">
+                <h2 class="text-lg font-semibold mb-4">⚙️ Propriétés</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Position</label>
+                        <input type="range" min="0" max="100" value="50" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Échelle</label>
+                        <input type="range" min="50" max="200" value="100" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Volume</label>
+                        <input type="range" min="0" max="100" value="80" class="w-full">
+                    </div>
+                    <button class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg font-semibold transition-colors">
+                        Appliquer les modifications
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input fichier caché -->
+        <input type="file" id="fileInput" multiple accept="video/*,audio/*,image/*" class="hidden">
+    </div>
+
+    <script>
+        // Éléments DOM
+        const loadingElement = document.getElementById('loading');
+        const appElement = document.getElementById('app');
+        const fileInput = document.getElementById('fileInput');
+        const importBtn = document.getElementById('importBtn');
+        const playBtn = document.getElementById('playBtn');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const playhead = document.getElementById('playhead');
+        const mediaList = document.getElementById('mediaList');
+        const videoTrack = document.getElementById('videoTrack');
+        const audioTrack = document.getElementById('audioTrack');
+
+        // État de l'application
+        let mediaFiles = [];
+        let isPlaying = false;
+        let currentTime = 0;
+        let playInterval = null;
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Application initialisée');
+            
+            // Masquer l'écran de chargement après 1.5 secondes
+            setTimeout(() => {
+                loadingElement.classList.add('hidden');
+                appElement.classList.remove('hidden');
+                console.log('Écran de chargement masqué');
+            }, 1500);
+
+            // Configurer les événements
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Import de fichiers
+            importBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+
+            // Contrôle de lecture
+            playBtn.addEventListener('click', togglePlayback);
+
+            // Glisser-déposer
+            document.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            document.addEventListener('drop', (e) => {
+                e.preventDefault();
+                handleFiles(e.dataTransfer.files);
+            });
+        }
+
+        function handleFiles(files) {
+            if (!files.length) return;
+
+            // Ajouter les fichiers à la liste
+            Array.from(files).forEach(file => {
+                const fileInfo = {
+                    id: 'media_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    name: file.name,
+                    type: getFileType(file.type),
+                    size: file.size,
+                    file: file
+                };
+                mediaFiles.push(fileInfo);
+            });
+
+            // Mettre à jour l'interface
+            updateMediaList();
+            createTimelineClips();
+            
+            // Changer l'état de l'aperçu
+            document.querySelector('.text-6xl').textContent = '🎥';
+            document.querySelector('h2').textContent = 'Prêt à monter';
+            document.querySelector('p').textContent = `${mediaFiles.length} média(s) chargé(s)`;
+        }
+
+        function getFileType(mimeType) {
+            if (mimeType.startsWith('video/')) return 'video';
+            if (mimeType.startsWith('audio/')) return 'audio';
+            if (mimeType.startsWith('image/')) return 'image';
+            return 'other';
+        }
+
+        function updateMediaList() {
+            if (mediaFiles.length === 0) {
+                mediaList.innerHTML = '<p class="text-gray-400 text-sm text-center py-8">Aucun média importé</p>';
+                return;
+            }
+
+            mediaList.innerHTML = '';
+            mediaFiles.forEach(file => {
+                const mediaElement = document.createElement('div');
+                mediaElement.className = 'bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors';
+                mediaElement.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="text-2xl mr-3">${getFileIcon(file.type)}</span>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium truncate">${file.name}</div>
+                            <div class="text-xs text-gray-400">${formatFileSize(file.size)} • ${file.type}</div>
+                        </div>
+                    </div>
+                `;
+                mediaList.appendChild(mediaElement);
+            });
+        }
+
+        function getFileIcon(type) {
+            switch(type) {
+                case 'video': return '🎥';
+                case 'audio': return '🎵';
+                case 'image': return '🖼️';
+                default: return '📄';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function createTimelineClips() {
+            // Vider les pistes
+            videoTrack.innerHTML = '';
+            audioTrack.innerHTML = '';
+
+            // Ajouter les clips
+            mediaFiles.forEach((file, index) => {
+                const clip = document.createElement('div');
+                clip.className = 'clip absolute top-2';
+                clip.style.width = '120px';
+                clip.style.left = (index * 130 + 10) + 'px';
+                clip.textContent = file.name.substring(0, 10) + (file.name.length > 10 ? '...' : '');
+                clip.draggable = true;
+
+                if (file.type === 'video') {
+                    videoTrack.appendChild(clip);
+                } else if (file.type === 'audio') {
+                    audioTrack.appendChild(clip);
+                }
+            });
+        }
+
+        function togglePlayback() {
+            isPlaying = !isPlaying;
+            
+            if (isPlaying) {
+                playBtn.innerHTML = '⏸';
+                playBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                playBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+                
+                // Démarrer l'animation
+                playInterval = setInterval(() => {
+                    currentTime++;
+                    updateTimeDisplay();
+                    updatePlayhead();
+                }, 1000);
+            } else {
+                playBtn.innerHTML = '▶';
+                playBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                playBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                
+                // Arrêter l'animation
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+        }
+
+        function updateTimeDisplay() {
+            const totalTime = 120; // 2 minutes en secondes
+            timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(totalTime)}`;
+        }
+
+        function formatTime(seconds) {
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updatePlayhead() {
+            const progress = (currentTime % 120) / 120 * 100;
+            playhead.style.left = progress + '%';
+        }
+
+        // Animation du playhead au chargement
+        setInterval(() => {
+            if (!isPlaying) {
+                const idleProgress = (Date.now() / 20000) % 100;
+                playhead.style.left = idleProgress + '%';
+            }
+        }, 100);
+    </script>
+</body>
 </html>
