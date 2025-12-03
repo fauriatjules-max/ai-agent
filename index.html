@@ -1,213 +1,167 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ProVideoEditor - PRÊT</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Éditeur Vidéo Simple</title>
     <style>
-        body { margin: 0; background: #0f172a; color: white; font-family: Arial; }
-        .header { background: #1e293b; padding: 20px; text-align: center; }
-        .main { display: flex; height: calc(100vh - 80px); }
-        .sidebar { width: 250px; background: #1e293b; padding: 15px; }
-        .preview { flex: 1; background: black; display: flex; align-items: center; justify-content: center; }
-        .timeline { height: 200px; background: #1e293b; padding: 15px; position: relative; }
-        .playhead { position: absolute; width: 2px; background: red; height: 100%; left: 50%; top: 0; }
-        .clip { background: #3b82f6; padding: 10px; margin: 5px; border-radius: 4px; }
-        /* Écran de chargement - MAINTENANT PRÉSENT */
-        #loading { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
             background: #0f172a; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 9999; 
+            color: white; 
         }
-        /* Application principale - cachée au début */
-        #app { display: none; }
+        .header { 
+            background: #1e293b; 
+            padding: 20px; 
+            text-align: center; 
+            border-bottom: 2px solid #334155;
+        }
+        .container { 
+            padding: 20px; 
+        }
+        .timeline { 
+            background: #1e293b; 
+            height: 100px; 
+            margin: 20px 0; 
+            border-radius: 8px;
+            position: relative;
+            overflow-x: auto;
+        }
+        .clip { 
+            background: #3b82f6; 
+            height: 60px; 
+            width: 100px; 
+            margin: 20px 10px; 
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .playhead {
+            position: absolute;
+            width: 3px;
+            background: #ef4444;
+            height: 100%;
+            left: 50%;
+            top: 0;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
     </style>
 </head>
 <body>
-    <!-- Écran de chargement - MAINTENANT PRÉSENT ET VISIBLE -->
-    <div id="loading">
-        <div style="width: 50px; height: 50px; border: 5px solid #334155; border-top: 5px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
-        <h2>Chargement de ProVideoEditor...</h2>
-        <p>Préparation de l'environnement de montage</p>
+    <div class="header">
+        <h1 style="margin: 0; font-size: 24px;">🎬 Mon Éditeur Vidéo</h1>
     </div>
-
-    <!-- Application principale - CACHÉE au début -->
-    <div id="app">
-        <div class="header">
-            <h1 style="font-size: 24px; margin: 0;">🎬 ProVideoEditor - PRÊT</h1>
-            <button onclick="importMedia()" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; margin: 10px; border-radius: 5px; cursor: pointer;">
-                📁 Importer des vidéos
-            </button>
+    
+    <div class="container">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button onclick="addClip()">+ Ajouter un clip</button>
+            <button onclick="playAnimation()">▶ Lecture</button>
+            <button onclick="reset()">🔄 Réinitialiser</button>
         </div>
         
-        <div class="main">
-            <div class="sidebar">
-                <h3>Médiathèque</h3>
-                <div id="mediaList">Aucun média</div>
-            </div>
-            
-            <div class="preview">
-                <div style="text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 20px;">📹</div>
-                    <h2>Aperçu Vidéo</h2>
-                    <p>Temps: <span id="time">00:00:00</span></p>
-                    <button onclick="togglePlay()" style="background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
-                        ▶ Lecture
-                    </button>
-                </div>
-            </div>
+        <div class="timeline" id="timeline">
+            <div class="playhead" id="playhead"></div>
         </div>
         
-        <div class="timeline">
-            <h3>Timeline</h3>
-            <div style="background: #334155; height: 60px; position: relative; border-radius: 4px;">
-                <div id="videoTrack" style="position: absolute; top: 5px; left: 0; right: 0; bottom: 5px;"></div>
-                <div class="playhead" id="playhead"></div>
-            </div>
+        <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #94a3b8;">Glissez-déposez des fichiers vidéo ici ou utilisez les boutons</p>
         </div>
     </div>
 
     <script>
-        // Masquer l'écran de chargement et afficher l'app après 2 secondes
-        setTimeout(() => {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-        }, 2000);
-
-        // Variables globales
+        let clipCount = 0;
         let isPlaying = false;
-        let currentTime = 0;
-        let playInterval = null;
-        let mediaFiles = [];
-
-        // Fonction pour importer des médias
-        function importMedia() {
-            const files = [
-                { name: 'video1.mp4', type: 'video', duration: 60 },
-                { name: 'audio1.mp3', type: 'audio', duration: 45 },
-                { name: 'image1.jpg', type: 'image', duration: 0 }
-            ];
-            
-            mediaFiles = files;
-            updateMediaList();
-            createTimelineClips();
-            
-            document.querySelector('.preview h2').textContent = 'Médias chargés !';
+        let animationId = null;
+        
+        function addClip() {
+            clipCount++;
+            const timeline = document.getElementById('timeline');
+            const clip = document.createElement('div');
+            clip.className = 'clip';
+            clip.textContent = 'Clip ' + clipCount;
+            clip.style.background = getRandomColor();
+            timeline.appendChild(clip);
         }
-
-        // Mettre à jour la liste des médias
-        function updateMediaList() {
-            const mediaList = document.getElementById('mediaList');
-            mediaList.innerHTML = '';
+        
+        function playAnimation() {
+            const playhead = document.getElementById('playhead');
+            const timeline = document.getElementById('timeline');
             
-            mediaFiles.forEach(file => {
-                const div = document.createElement('div');
-                div.className = 'clip';
-                div.textContent = `${file.type === 'video' ? '🎥' : file.type === 'audio' ? '🎵' : '🖼️'} ${file.name}`;
-                mediaList.appendChild(div);
-            });
-        }
-
-        // Créer les clips dans la timeline
-        function createTimelineClips() {
-            const videoTrack = document.getElementById('videoTrack');
-            videoTrack.innerHTML = '';
-            
-            mediaFiles.forEach((file, index) => {
-                const clip = document.createElement('div');
-                clip.className = 'clip';
-                clip.style.cssText = `
-                    position: absolute;
-                    left: ${index * 120}px;
-                    top: 5px;
-                    width: 100px;
-                    height: 40px;
-                    background: ${file.type === 'video' ? '#3b82f6' : file.type === 'audio' ? '#10b981' : '#f59e0b'};
-                    color: white;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 4px;
-                    cursor: move;
-                `;
-                clip.textContent = file.name;
-                videoTrack.appendChild(clip);
-            });
-        }
-
-        // Contrôle de lecture
-        function togglePlay() {
-            isPlaying = !isPlaying;
-            const button = document.querySelector('.preview button');
-            
-            if (isPlaying) {
-                button.textContent = '⏸ Pause';
-                button.style.background = '#f59e0b';
+            if (!isPlaying) {
+                isPlaying = true;
+                let position = 0;
                 
-                playInterval = setInterval(() => {
-                    currentTime++;
-                    updateTimeDisplay();
-                    updatePlayhead();
-                }, 1000);
+                function animate() {
+                    position = (position + 0.5) % 100;
+                    playhead.style.left = position + '%';
+                    
+                    if (isPlaying) {
+                        animationId = requestAnimationFrame(animate);
+                    }
+                }
+                
+                animate();
             } else {
-                button.textContent = '▶ Lecture';
-                button.style.background = '#ef4444';
-                
-                if (playInterval) {
-                    clearInterval(playInterval);
-                    playInterval = null;
+                isPlaying = false;
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
                 }
             }
         }
-
-        // Mettre à jour l'affichage du temps
-        function updateTimeDisplay() {
-            const hours = Math.floor(currentTime / 3600).toString().padStart(2, '0');
-            const minutes = Math.floor((currentTime % 3600) / 60).toString().padStart(2, '0');
-            const seconds = (currentTime % 60).toString().padStart(2, '0');
+        
+        function reset() {
+            const timeline = document.getElementById('timeline');
+            const clips = timeline.querySelectorAll('.clip');
+            clips.forEach(clip => clip.remove());
+            clipCount = 0;
             
-            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
-        }
-
-        // Mettre à jour le playhead
-        function updatePlayhead() {
             const playhead = document.getElementById('playhead');
-            const progress = (currentTime % 120) / 120 * 100;
-            playhead.style.left = progress + '%';
+            playhead.style.left = '50%';
+            
+            isPlaying = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
         }
-
-        // Animation du playhead (même sans lecture)
-        setInterval(() => {
-            if (!isPlaying) {
-                const playhead = document.getElementById('playhead');
-                const idleProgress = (Date.now() / 20000) % 100;
-                playhead.style.left = idleProgress + '%';
-            }
-        }, 100);
-
-        // Glisser-déposer
-        document.addEventListener('dragover', (e) => e.preventDefault());
-        document.addEventListener('drop', (e) => {
+        
+        function getRandomColor() {
+            const colors = [
+                '#3b82f6', // blue
+                '#ef4444', // red
+                '#10b981', // green
+                '#f59e0b', // yellow
+                '#8b5cf6'  // purple
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        // Support glisser-déposer
+        document.addEventListener('dragover', function(e) {
             e.preventDefault();
-            alert(`${e.dataTransfer.files.length} fichier(s) prêt(s) à être importé(s)`);
         });
-
-        // Style pour l'animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
+        
+        document.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            alert('Fichiers reçus : ' + files.length);
+            for (let i = 0; i < Math.min(files.length, 5); i++) {
+                addClip();
             }
-        `;
-        document.head.appendChild(style);
+        });
     </script>
 </body>
 </html>
