@@ -1,19 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ProVideoEditor</title>
+<html>
+<head>
+    <title>Mon Éditeur Vidéo Simple</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      body {
-        margin: 0;
-        padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-      }
+        body { margin: 0; background: #1a202c; color: white; font-family: Arial; }
+        .header { background: #2d3748; padding: 20px; text-align: center; }
+        .timeline { background: #4a5568; height: 200px; margin: 20px; position: relative; }
+        .playhead { position: absolute; width: 2px; background: red; height: 100%; left: 50%; }
+        .clip { background: #3b82f6; height: 50px; margin: 5px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
     </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/renderer/main.tsx"></script>
-  </body>
+</head>
+<body>
+    <div class="header">
+        <h1>🎬 Mon Éditeur Vidéo Simple</h1>
+        <button onclick="importMedia()">📁 Importer des vidéos</button>
+    </div>
+    
+    <div class="timeline">
+        <div id="videoTrack"></div>
+        <div class="playhead"></div>
+    </div>
+    
+    <script>
+        function importMedia() {
+            alert("Fonction d'import à implémenter !");
+            // Ajouter un clip de démonstration
+            const track = document.getElementById('videoTrack');
+            const clip = document.createElement('div');
+            clip.className = 'clip';
+            clip.textContent = '🎥 Clip démo';
+            clip.style.width = '100px';
+            track.appendChild(clip);
+        }
+        
+        // Animation du playhead
+        setInterval(() => {
+            const playhead = document.querySelector('.playhead');
+            const currentLeft = parseInt(playhead.style.left) || 50;
+            playhead.style.left = (currentLeft + 1) % 100 + '%';
+        }, 100);
+    </script>
+</body>
 </html>
