@@ -23,3 +23,8 @@
     "vite": "^4.4.0"
   }
 }
+"scripts": {
+  "dist": "electron-builder"
+}
+
+npm run dist --win
