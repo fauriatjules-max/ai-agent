@@ -26,5 +26,4 @@
 "scripts": {
   "dist": "electron-builder"
 }
-
 npm run dist --win
