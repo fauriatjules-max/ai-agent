@@ -93,10 +93,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/fauriatjules-max/ai-agent/new/main"
+    "url": "https://github.com/fauriatjules-max/ai-agent"
   },
   "bugs": {
-    "url": "https://github.com/fauriatjules-max/ai-agent/new/main"
+    "url": "https://github.com/fauriatjules-max/ai-agent"
   },
-  "homepage": "https://github.com/fauriatjules-max/ai-agent/new/main"
+  "homepage": "https://github.com/fauriatjules-max/ai-agent"
 }
