@@ -1,0 +1,72 @@
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Build outputs
+*.min.js
+*.bundle.js
+
+# Coverage
+coverage/
+*.lcov
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# Test outputs
+test-results/
+jest-cache/
+
+# Documentation
+docs/
+
+# Config files (handled by other linters)
+*.config.js
+webpack.config.js
+
+# Ignore specific patterns
+**/__generated__/
+**/__snapshots__/
+
+# Ignore auto-generated files
+**/*.d.ts
+**/*.js.map
+
+# Ignore UI files if separate project
+ui/
+public/
+static/
+
+# Git files
+.git/
+.gitignore
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Docker
+Dockerfile
+docker-compose.yml
